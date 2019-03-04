@@ -218,8 +218,9 @@ void OnSetCookie(util::Promise promise, bool success) {
 void FlushCookieStoreOnIOThread(
     scoped_refptr<net::URLRequestContextGetter> getter,
     util::Promise promise) {
-  GetCookieStore(getter)->FlushStore(
-      base::BindOnce(ResolvePromiseInUI, std::move(promise)));
+  auto cb = base::BindOnce(&util::Promise::ResolvePromise<void>,
+                           std::move(promise), base::nullopt);
+  GetCookieStore(getter)->FlushStore(cb);
 }
 
 // Sets cookie with |details| in IO thread.
