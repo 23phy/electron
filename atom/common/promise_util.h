@@ -44,7 +44,7 @@ class Promise {
 
   template <typename T>
   static void ResolutionBinder(Promise promise, base::Optional<T> result) {
-    (result.has_value()) ? promise.Resolve(result.value()) : promise.Resolve();
+    (result) ? promise.Resolve(result.value()) : promise.Resolve();
   }
 
   template <typename T>
@@ -58,19 +58,18 @@ class Promise {
     }
   }
 
-  template <typename T>
-  static void RejectionBinder(Promise promise, base::Optional<T> result) {
-    (result.has_value()) ? promise.Resolve(result.value()) : promise.Resolve();
+  static void RejectionBinder(Promise promise, std::string errmsg) {
+    promise.RejectWithErrorMessage(errmsg);
   }
 
   template <typename T>
-  static void RejectPromise(Promise promise, base::Optional<T> result) {
+  static void RejectPromise(Promise promise, std::string errmsg) {
     if (!content::BrowserThread::CurrentlyOn(content::BrowserThread::UI)) {
       base::PostTaskWithTraits(
           FROM_HERE, {content::BrowserThread::UI},
-          base::BindOnce(&RejectionBinder<T>, std::move(promise), result));
+          base::BindOnce(&RejectionBinder, std::move(promise), errmsg));
     } else {
-      RejectionBinder(std::move(promise), result);
+      RejectionBinder(std::move(promise), errmsg);
     }
   }
 
@@ -161,10 +160,39 @@ class CopyablePromise {
   ~CopyablePromise();
 
   template <typename T>
-  static void CopyableResolverBinder(const CopyablePromise& promise,
-                                     base::Optional<T> result) {
+  static void CopyableResolutionBinder(const CopyablePromise& promise,
+                                       base::Optional<T> result) {
     (result) ? promise.GetPromise().Resolve(result.value())
              : promise.GetPromise().Resolve();
+  }
+
+  template <typename T>
+  static void ResolveCopyablePromise(const CopyablePromise& promise,
+                                     base::Optional<T> result) {
+    if (!content::BrowserThread::CurrentlyOn(content::BrowserThread::UI)) {
+      base::PostTaskWithTraits(
+          FROM_HERE, {content::BrowserThread::UI},
+          base::Bind(&CopyableResolutionBinder<T>, promise, result));
+    } else {
+      CopyableResolutionBinder(promise, result);
+    }
+  }
+
+  static void CopyableRejectionBinder(const CopyablePromise& promise,
+                                      std::string errmsg) {
+    promise.GetPromise().RejectWithErrorMessage(errmsg);
+  }
+
+  template <typename T>
+  static void RejectCopyablePromise(const CopyablePromise& promise,
+                                    std::string errmsg) {
+    if (!content::BrowserThread::CurrentlyOn(content::BrowserThread::UI)) {
+      base::PostTaskWithTraits(
+          FROM_HERE, {content::BrowserThread::UI},
+          base::Bind(&CopyableRejectionBinder, promise, errmsg));
+    } else {
+      CopyableRejectionBinder(promise, errmsg);
+    }
   }
 
   Promise GetPromise() const;
