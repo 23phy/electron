@@ -6,6 +6,7 @@
 #define ATOM_COMMON_PROMISE_UTIL_H_
 
 #include <string>
+#include <utility>
 
 #include "atom/common/api/locker.h"
 #include "atom/common/native_mate_converters/callback.h"
@@ -62,7 +63,6 @@ class Promise {
     promise.RejectWithErrorMessage(errmsg);
   }
 
-  template <typename T>
   static void RejectPromise(Promise promise, std::string errmsg) {
     if (!content::BrowserThread::CurrentlyOn(content::BrowserThread::UI)) {
       base::PostTaskWithTraits(
@@ -183,7 +183,6 @@ class CopyablePromise {
     promise.GetPromise().RejectWithErrorMessage(errmsg);
   }
 
-  template <typename T>
   static void RejectCopyablePromise(const CopyablePromise& promise,
                                     std::string errmsg) {
     if (!content::BrowserThread::CurrentlyOn(content::BrowserThread::UI)) {
