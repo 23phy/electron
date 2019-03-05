@@ -40,9 +40,11 @@ class Promise {
     return v8::Local<v8::Context>::New(isolate_, context_);
   }
 
+  // helpers for promise resolution and rejection
+
   template <typename T>
   static void ResolutionBinder(Promise promise, base::Optional<T> result) {
-    (result) ? promise.Resolve(result.value()) : promise.Resolve();
+    (result.has_value()) ? promise.Resolve(result.value()) : promise.Resolve();
   }
 
   template <typename T>
@@ -52,13 +54,13 @@ class Promise {
           FROM_HERE, {content::BrowserThread::UI},
           base::BindOnce(&ResolutionBinder<T>, std::move(promise), result));
     } else {
-      ResolutionBinder(promise, result);
+      ResolutionBinder(std::move(promise), result);
     }
   }
 
   template <typename T>
   static void RejectionBinder(Promise promise, base::Optional<T> result) {
-    (result) ? promise.Resolve(result.value()) : promise.Resolve();
+    (result.has_value()) ? promise.Resolve(result.value()) : promise.Resolve();
   }
 
   template <typename T>
@@ -68,7 +70,7 @@ class Promise {
           FROM_HERE, {content::BrowserThread::UI},
           base::BindOnce(&RejectionBinder<T>, std::move(promise), result));
     } else {
-      RejectionBinder(promise, result);
+      RejectionBinder(std::move(promise), result);
     }
   }
 
